@@ -1,13 +1,43 @@
-/*
- * Copyright (c) 2012-2014 Wind River Systems, Inc.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
-#include <zephyr.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/printk.h>
+#include <zephyr.h>
 
-void main(void)
-{
-	printk("Hello World! %s\n", CONFIG_BOARD);
+#include "cJSON.h"
+#include "ed25519.h"
+
+char text1[] =
+    "{\n"
+    "\"name\": \"Jack (\\\"Bee\\\") Nimble\", \n"
+    "\"format\": {\"type\":       \"rect\", \n"
+    "\"width\":      1920, \n"
+    "\"height\":     1080, \n"
+    "\"interlace\":  false,\"frame rate\": 24\n"
+    "}\n"
+    "}";
+
+void main(void) {
+  printk("Hello World! %s\n", CONFIG_BOARD);
+
+  cJSON *root = cJSON_Parse(text1);
+  if (root) {
+    cJSON *name = cJSON_GetObjectItemCaseSensitive(root, "name");
+    if (cJSON_IsString(name) && (name->valuestring != NULL)) {
+      printf("%s\n", name->valuestring);
+    } else {
+      printf("parsing error!!\n");
+    }
+    cJSON_Delete(root);
+  }
+
+  char seed[64] = {};
+  ed25519_randombytes_unsafe(seed, sizeof(seed));
+  printf("seed: ");
+  for (size_t i = 0; i < sizeof(seed); i++) {
+    printf("%x, ", seed[i]);
+  }
+  printf("\n");
 }
