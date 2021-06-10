@@ -8,6 +8,7 @@ Use `west` tool
 
 ```
 $ west build -b b_l4s5i_iot01a
+$ west build -t menuconfig
 ```
 
 Use CMake and Ninja
@@ -15,6 +16,8 @@ Use CMake and Ninja
 ```
 # Use cmake to configure a Ninja-based buildsystem:
 $ cmake -B build -GNinja -DBOARD=b_l4s5i_iot01a
+
+$ ninja -C build menuconfig
 
 # Now run ninja on the generated build system:
 $ ninja -C build
