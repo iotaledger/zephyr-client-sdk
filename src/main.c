@@ -7,7 +7,7 @@
 #include <zephyr.h>
 
 #include "cJSON.h"
-#include "ed25519.h"
+#include "crypto/iota_crypto.h"
 
 char text1[] =
     "{\n"
@@ -34,7 +34,7 @@ void main(void) {
   }
 
   char seed[64] = {};
-  ed25519_randombytes_unsafe(seed, sizeof(seed));
+  iota_crypto_randombytes(seed, sizeof(seed));
   printf("seed: ");
   for (size_t i = 0; i < sizeof(seed); i++) {
     printf("%x, ", seed[i]);

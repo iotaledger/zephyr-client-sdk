@@ -58,3 +58,13 @@ Serial port baud rate 115200
 *** Booting Zephyr OS build zephyr-v2.6.0  ***
 Hello World! b_l4s5i_iot01a
 ```
+
+# Unit tests
+
+```
+$ west build -b b_l4s5i_iot01a -- -DCONF_FILE=prj_test.conf -DUNIT_TESTS=ON
+$ west flash
+
+$ cmake -B build -GNinja -DBOARD=b_l4s5i_iot01a -DCONF_FILE=prj_test.conf -DUNIT_TESTS=ON
+$ ninja -C build flash
+```

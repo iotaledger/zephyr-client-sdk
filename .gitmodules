@@ -1,0 +1,4 @@
+[submodule "libs/iota-c"]
+	path = libs/iota-c
+	url = https://github.com/oopsmonk/iota.c.git
+	branch = zephyr_14s5i
