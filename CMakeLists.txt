@@ -14,18 +14,33 @@ set(EXT_LIB_SRC
     "${EXT_LIB_DIR}/ed25519-donna/ed25519.c")
 
 set(EXT_LIB_INC "${EXT_LIB_DIR}/cjson" "${EXT_LIB_DIR}/blake2"
-                "${EXT_LIB_DIR}/ed25519-donna")
+                "${EXT_LIB_DIR}/ed25519-donna" "${EXT_LIB_DIR}/uthash")
 
 set(IOTA_SRC "${CMAKE_CURRENT_SOURCE_DIR}/libs/iota-c/src")
 
 set(IOTA_CRYPTO "${IOTA_SRC}/crypto/iota_crypto.c")
 
+set(IOTA_CORE
+    "${IOTA_SRC}/core/address.c"
+    "${IOTA_SRC}/core/seed.c"
+    "${IOTA_SRC}/core/models/inputs/utxo_input.c"
+    "${IOTA_SRC}/core/models/outputs/outputs.c"
+    "${IOTA_SRC}/core/models/payloads/indexation.c"
+    "${IOTA_SRC}/core/models/payloads/transaction.c"
+    "${IOTA_SRC}/core/models/message.c"
+    "${IOTA_SRC}/core/utils/bech32.c"
+    "${IOTA_SRC}/core/utils/byte_buffer.c"
+    "${IOTA_SRC}/core/utils/iota_str.c"
+    "${IOTA_SRC}/core/utils/slip10.c")
+
 message("Unit tests is ${UNIT_TESTS}")
 
 if(UNIT_TESTS)
-  target_sources(app PRIVATE "tests/test_main.c" ${EXT_LIB_SRC} ${IOTA_CRYPTO})
+  target_sources(app PRIVATE "tests/test_main.c" ${EXT_LIB_SRC} ${IOTA_CRYPTO}
+                             ${IOTA_CORE})
 else()
-  target_sources(app PRIVATE "src/main.c" ${EXT_LIB_SRC} ${IOTA_CRYPTO})
+  target_sources(app PRIVATE "src/main.c" ${EXT_LIB_SRC} ${IOTA_CRYPTO}
+                             ${IOTA_CORE})
 endif()
 
 # configure ed25519-donna

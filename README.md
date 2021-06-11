@@ -1,6 +1,10 @@
 # IOTA Wallet
 
-An IOTA wallet example uses Zephyr on [STM32 B-L4S5I-IOT01A](https://www.st.com/en/evaluation-tools/b-l4s5i-iot01a.html)  
+An IOTA wallet development kit uses [Zephyr RTOS](https://www.zephyrproject.org/)
+
+Support Boards:
+
+* [STM32 B-L4S5I-IOT01A](https://www.st.com/en/evaluation-tools/b-l4s5i-iot01a.html)
 
 # [Build Application](https://docs.zephyrproject.org/latest/application/index.html)
 
