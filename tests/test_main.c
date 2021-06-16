@@ -112,7 +112,7 @@ static void test_address_gen(void) {
   // convert binary address to bech32 with iot HRP
   zassert_ok(address_2_bech32(addr_with_ver, "iot", bech32_addr), "");
   zassert_mem_equal(exp_iot_bech32, bech32_addr, strlen(exp_iot_bech32), "");
-  printf("bech32 [iot]: %s\n", bech32_addr);
+  // printf("bech32 [iot]: %s\n", bech32_addr);
   // bech32 to binary address
   zassert_ok(address_from_bech32("iot", bech32_addr, addr_from_bech32), "");
   zassert_mem_equal(addr_with_ver, addr_from_bech32, IOTA_ADDRESS_BYTES, "");
@@ -120,7 +120,7 @@ static void test_address_gen(void) {
   // convert binary address to bech32 with iota HRP
   zassert_ok(address_2_bech32(addr_with_ver, "iota", bech32_addr), "");
   zassert_mem_equal(exp_iota_bech32, bech32_addr, strlen(exp_iota_bech32), "");
-  printf("bech32 [iota]: %s\n", bech32_addr);
+  // printf("bech32 [iota]: %s\n", bech32_addr);
   // bech32 to binary address
   zassert_ok(address_from_bech32("iota", bech32_addr, addr_from_bech32), "");
   zassert_mem_equal(addr_with_ver, addr_from_bech32, IOTA_ADDRESS_BYTES, "");
@@ -260,6 +260,9 @@ static void bench_address_generating(void) {
 }
 
 void test_main(void) {
+
+  printf("====Unit Test on %s====\n", CONFIG_BOARD);
+
   // clang-format off
   ztest_test_suite(iota_crypto,
     ztest_unit_test(test_blake2b),
