@@ -77,6 +77,10 @@ $ ninja -C build flash
 
 # Native build
 
+## setup a virtual network between a Linux host for native_posix target
+
+https://docs.zephyrproject.org/latest/guides/networking/native_posix_setup.html
+
 ```
 # app 
 $ west build -b native_posix -- -DCONF_FILE=prj_native.conf
