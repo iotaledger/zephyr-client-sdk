@@ -232,7 +232,8 @@ typedef struct {
 
 // strdup is not a standard API
 #if _XOPEN_SOURCE >= 500 || /* Since glibc 2.12: */ _POSIX_C_SOURCE >= 200809L \
-  || /* Glibc versions <= 2.19: */ defined(_BSD_SOURCE) || defined(_SVID_SOURCE) || defined(__ZEPHYR__) 
+  || /* Glibc versions <= 2.19: */ defined(_BSD_SOURCE) || defined(_SVID_SOURCE) || defined(__ZEPHYR__)
+#ifndef CONFIG_ARCH_POSIX
 static char* strdup(const char* s)
 {
   size_t slen = strlen(s);
@@ -244,6 +245,7 @@ static char* strdup(const char* s)
   memcpy(result, s, slen+1);
   return result;
 }
+#endif
 #endif
 
 /* last we pre-define a few icd for common utarrays of ints and strings */

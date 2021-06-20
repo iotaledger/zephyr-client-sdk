@@ -260,7 +260,6 @@ static void bench_address_generating(void) {
 }
 
 void test_main(void) {
-
   printf("====Unit Test on %s====\n", CONFIG_BOARD);
 
   // clang-format off

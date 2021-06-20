@@ -66,9 +66,23 @@ Hello World! b_l4s5i_iot01a
 # Unit tests
 
 ```
+# west test for b_l4s5i_iot01a
 $ west build -b b_l4s5i_iot01a -- -DCONF_FILE=prj_test.conf -DUNIT_TESTS=ON
 $ west flash
 
+# cmake test for b_l4s5i_iot01a
 $ cmake -B build -GNinja -DBOARD=b_l4s5i_iot01a -DCONF_FILE=prj_test.conf -DUNIT_TESTS=ON
 $ ninja -C build flash
+```
+
+# Native build
+
+```
+# app 
+$ west build -b native_posix -- -DCONF_FILE=prj_native.conf
+$ west build -t run
+
+# unit test 
+$ west build -b b_l4s5i_iot01a -- -DCONF_FILE=prj_native_test.conf -DUNIT_TESTS=ON
+$ west flash
 ```
