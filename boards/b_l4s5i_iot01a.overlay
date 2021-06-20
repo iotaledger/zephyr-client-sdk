@@ -1,0 +1,9 @@
+/*
+ * Copyright 2021 IOTA Stiftung
+ * SPDX-License-Identifier: Apache-2.0
+*/
+
+&spi3 {
+	cs-gpios = <&gpiod 13 GPIO_ACTIVE_LOW>,
+		   <&gpioe 0 GPIO_ACTIVE_LOW>;
+};
