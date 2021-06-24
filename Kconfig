@@ -1,0 +1,40 @@
+# Copyright 2021 IOTA Stiftung
+# SPDX-License-Identifier: Apache-2.0
+
+menu "IOTA SDK Config"
+
+config IOTA_NODE_URL
+	string "IOTA Node URL"
+	default "api.lb-0.testnet.chrysalis2.com"
+
+config IOTA_API_PORT
+	int "The prot number of the endpoint"
+	range 80 35535
+	default 80
+
+if WIFI
+
+config APP_WIFI_AUTO
+	bool "Setup WiFi"
+
+config APP_WIFI_SSID
+	string "WiFi SSID"
+	depends on APP_WIFI_AUTO
+	default "my_ssid"
+
+config APP_WIFI_PWD
+	string "WiFi Password(PSK)"
+	depends on APP_WIFI_AUTO
+	default "my_pwd"
+if APP_WIFI_AUTO
+module = APP_WIFI_CONN
+module-str = WIFI Connection
+module-help = Enables logging for WiFi connection.
+source "subsys/logging/Kconfig.template.log_config"
+endif # APP_WIFI_AUTO
+
+endif # WIFI
+
+endmenu
+
+source "Kconfig.zephyr"

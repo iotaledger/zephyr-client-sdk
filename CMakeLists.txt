@@ -1,5 +1,7 @@
-# Copyright 2021 IOTA Stiftung
-# SPDX-License-Identifier: Apache-2.0
+#[[
+// Copyright 2021 IOTA Stiftung
+// SPDX-License-Identifier: Apache-2.0
+]]
 
 cmake_minimum_required(VERSION 3.13.1)
 
@@ -40,8 +42,8 @@ if(UNIT_TESTS)
   target_sources(app PRIVATE "tests/test_main.c" ${EXT_LIB_SRC} ${IOTA_CRYPTO}
                              ${IOTA_CORE})
 else()
-  target_sources(app PRIVATE "src/main.c" "src/iota_shell.c" ${EXT_LIB_SRC}
-                             ${IOTA_CRYPTO} ${IOTA_CORE})
+  target_sources(app PRIVATE "src/main.c" "src/iota_shell.c" "src/wifi.c"
+                             ${EXT_LIB_SRC} ${IOTA_CRYPTO} ${IOTA_CORE})
 endif()
 
 # configure ed25519-donna
