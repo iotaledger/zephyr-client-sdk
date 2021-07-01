@@ -19,22 +19,24 @@ set(EXT_LIB_SRC
 set(EXT_LIB_INC "${EXT_LIB_DIR}/cjson" "${EXT_LIB_DIR}/blake2"
                 "${EXT_LIB_DIR}/ed25519-donna" "${EXT_LIB_DIR}/uthash")
 
-set(IOTA_SRC "${CMAKE_CURRENT_SOURCE_DIR}/libs/iota-c/src")
+set(IOTA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/iota-c/src")
 
-set(IOTA_CRYPTO "${IOTA_SRC}/crypto/iota_crypto.c")
+set(IOTA_CRYPTO "${IOTA_SRC_DIR}/crypto/iota_crypto.c")
 
 set(IOTA_CORE
-    "${IOTA_SRC}/core/address.c"
-    "${IOTA_SRC}/core/seed.c"
-    "${IOTA_SRC}/core/models/inputs/utxo_input.c"
-    "${IOTA_SRC}/core/models/outputs/outputs.c"
-    "${IOTA_SRC}/core/models/payloads/indexation.c"
-    "${IOTA_SRC}/core/models/payloads/transaction.c"
-    "${IOTA_SRC}/core/models/message.c"
-    "${IOTA_SRC}/core/utils/bech32.c"
-    "${IOTA_SRC}/core/utils/byte_buffer.c"
-    "${IOTA_SRC}/core/utils/iota_str.c"
-    "${IOTA_SRC}/core/utils/slip10.c")
+    "${IOTA_SRC_DIR}/core/address.c"
+    "${IOTA_SRC_DIR}/core/seed.c"
+    "${IOTA_SRC_DIR}/core/models/inputs/utxo_input.c"
+    "${IOTA_SRC_DIR}/core/models/outputs/outputs.c"
+    "${IOTA_SRC_DIR}/core/models/payloads/indexation.c"
+    "${IOTA_SRC_DIR}/core/models/payloads/transaction.c"
+    "${IOTA_SRC_DIR}/core/models/message.c"
+    "${IOTA_SRC_DIR}/core/utils/bech32.c"
+    "${IOTA_SRC_DIR}/core/utils/byte_buffer.c"
+    "${IOTA_SRC_DIR}/core/utils/iota_str.c"
+    "${IOTA_SRC_DIR}/core/utils/slip10.c")
+
+set(IOTA_CLIENT "${IOTA_SRC_DIR}/client/network/http_zephyr.c")
 
 message("Unit tests is ${UNIT_TESTS}")
 
@@ -42,8 +44,19 @@ if(UNIT_TESTS)
   target_sources(app PRIVATE "tests/test_main.c" ${EXT_LIB_SRC} ${IOTA_CRYPTO}
                              ${IOTA_CORE})
 else()
-  target_sources(app PRIVATE "src/main.c" "src/iota_shell.c" "src/wifi.c"
-                             ${EXT_LIB_SRC} ${IOTA_CRYPTO} ${IOTA_CORE})
+  # add TLS certification
+  set(gen_dir ${ZEPHYR_BINARY_DIR}/include/generated/)
+  generate_inc_file_for_target(app "src/app-cert.der" "${gen_dir}/app-cert.der.inc")
+
+  target_sources(
+    app
+    PRIVATE "src/main.c"
+            "src/iota_shell.c"
+            "src/wifi.c"
+            ${EXT_LIB_SRC}
+            ${IOTA_CRYPTO}
+            ${IOTA_CORE}
+            ${IOTA_CLIENT})
 endif()
 
 # configure ed25519-donna
@@ -56,8 +69,8 @@ target_compile_definitions(
   PRIVATE CRYPTO_USE_MBEDTLS)
 
 if(UNIT_TESTS)
-  target_include_directories(app PUBLIC ${EXT_LIB_INC} ${IOTA_SRC}
+  target_include_directories(app PUBLIC ${EXT_LIB_INC} ${IOTA_SRC_DIR}
                                         ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 else()
-  target_include_directories(app PUBLIC ${EXT_LIB_INC} ${IOTA_SRC})
+  target_include_directories(app PUBLIC ${EXT_LIB_INC} ${IOTA_SRC_DIR} ${CMAKE_SOURCE_DIR}/src)
 endif()

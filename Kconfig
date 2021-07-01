@@ -9,8 +9,17 @@ config IOTA_NODE_URL
 
 config IOTA_API_PORT
 	int "The prot number of the endpoint"
-	range 80 35535
-	default 80
+	range 0 35535
+	default 443
+
+config IOTA_HTTP_RECV_BUFF_SIZE
+	int "HTTP Client receive buffer size"
+	default 1024
+
+module = IOTA_HTTP_CLIENT
+module-str = IOTA HTTP Client
+module-help = Enables logging for http client.
+source "subsys/logging/Kconfig.template.log_config"
 
 if WIFI
 
@@ -26,6 +35,7 @@ config APP_WIFI_PWD
 	string "WiFi Password(PSK)"
 	depends on APP_WIFI_AUTO
 	default "my_pwd"
+
 if APP_WIFI_AUTO
 module = APP_WIFI_CONN
 module-str = WIFI Connection
