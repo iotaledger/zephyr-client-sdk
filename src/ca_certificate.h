@@ -1,6 +1,8 @@
 // Copyright 2021 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+#pragma once
+
 #define CA_CERTIFICATE_TAG 1
 
 // amazon root CA1

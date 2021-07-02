@@ -5,10 +5,10 @@ menu "IOTA SDK Config"
 
 config IOTA_NODE_URL
 	string "IOTA Node URL"
-	default "api.lb-0.testnet.chrysalis2.com"
+	default "https://api.lb-0.testnet.chrysalis2.com"
 
-config IOTA_API_PORT
-	int "The prot number of the endpoint"
+config IOTA_NODE_PORT
+	int "The prot number to connect"
 	range 0 35535
 	default 443
 

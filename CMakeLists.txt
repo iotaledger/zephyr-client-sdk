@@ -36,7 +36,23 @@ set(IOTA_CORE
     "${IOTA_SRC_DIR}/core/utils/iota_str.c"
     "${IOTA_SRC_DIR}/core/utils/slip10.c")
 
-set(IOTA_CLIENT "${IOTA_SRC_DIR}/client/network/http_zephyr.c")
+set(IOTA_CLIENT
+    "${IOTA_SRC_DIR}/client/network/http_zephyr.c"
+    "${IOTA_SRC_DIR}/client/api/json_utils.c"
+    "${IOTA_SRC_DIR}/client/api/message_builder.c"
+    "${IOTA_SRC_DIR}/client/api/message.c"
+    "${IOTA_SRC_DIR}/client/api/v1/find_message.c"
+    "${IOTA_SRC_DIR}/client/api/v1/get_balance.c"
+    "${IOTA_SRC_DIR}/client/api/v1/get_health.c"
+    "${IOTA_SRC_DIR}/client/api/v1/get_message_children.c"
+    "${IOTA_SRC_DIR}/client/api/v1/get_message_metadata.c"
+    "${IOTA_SRC_DIR}/client/api/v1/get_message.c"
+    "${IOTA_SRC_DIR}/client/api/v1/get_node_info.c"
+    "${IOTA_SRC_DIR}/client/api/v1/get_output.c"
+    "${IOTA_SRC_DIR}/client/api/v1/get_outputs_from_address.c"
+    "${IOTA_SRC_DIR}/client/api/v1/get_tips.c"
+    "${IOTA_SRC_DIR}/client/api/v1/response_error.c"
+    "${IOTA_SRC_DIR}/client/api/v1/send_message.c")
 
 message("Unit tests is ${UNIT_TESTS}")
 
@@ -46,7 +62,8 @@ if(UNIT_TESTS)
 else()
   # add TLS certification
   set(gen_dir ${ZEPHYR_BINARY_DIR}/include/generated/)
-  generate_inc_file_for_target(app "src/app-cert.der" "${gen_dir}/app-cert.der.inc")
+  generate_inc_file_for_target(app "src/app-cert.der"
+                               "${gen_dir}/app-cert.der.inc")
 
   target_sources(
     app
@@ -72,5 +89,6 @@ if(UNIT_TESTS)
   target_include_directories(app PUBLIC ${EXT_LIB_INC} ${IOTA_SRC_DIR}
                                         ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 else()
-  target_include_directories(app PUBLIC ${EXT_LIB_INC} ${IOTA_SRC_DIR} ${CMAKE_SOURCE_DIR}/src)
+  target_include_directories(app PUBLIC ${EXT_LIB_INC} ${IOTA_SRC_DIR}
+                                        ${CMAKE_SOURCE_DIR}/src)
 endif()

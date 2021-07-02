@@ -3,8 +3,4 @@
 
 #pragma once
 
-/**
- * @brief connect to wifi
- *
- */
-void wifi_connect(void);
+int init_http_client_conf();

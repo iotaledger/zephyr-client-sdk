@@ -88,6 +88,6 @@ $ west build -b native_posix
 $ west build -t run
 
 # unit test 
-$ west build -b b_l4s5i_iot01a -- -DUNIT_TESTS=ON
+$ west build -b b_l4s5i_iot01a -t menuconfig -- -DUNIT_TESTS=ON
 $ west flash
 ```
