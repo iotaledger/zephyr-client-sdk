@@ -9,7 +9,7 @@ config IOTA_NODE_URL
 
 config IOTA_NODE_PORT
 	int "The prot number to connect"
-	range 0 35535
+	range 0 65535
 	default 443
 
 config IOTA_HTTP_RECV_BUFF_SIZE
