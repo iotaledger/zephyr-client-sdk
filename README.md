@@ -1,93 +1,41 @@
-# IOTA Wallet
+# IOTA Client Development Kit for Zephyr RTOS
 
-An IOTA wallet development kit uses [Zephyr RTOS](https://www.zephyrproject.org/)
+This Software Development Kit(SDK) is a bundle of IOTA client library and Zephyr RTOS for embedded client development.
 
-Support Boards:
+For more details please visit [iota.c](https://iota-c-client.readthedocs.io/en/latest/index.html) and [Zephyr](https://docs.zephyrproject.org/latest/introduction/index.html).
 
-* [STM32 B-L4S5I-IOT01A](https://www.st.com/en/evaluation-tools/b-l4s5i-iot01a.html)
+# Hardware Requirements
 
-# [Build Application](https://docs.zephyrproject.org/latest/application/index.html)
+The hardware requirements are depends on the use case, here are recommendations:
 
-Use `west` tool
+* 1MB Flash Memory
+* 256KB SRAM
+* True Random Number Generator
+* HMAC-SHA Hardware Accelerator
+* TCP/IP network stack with TLS support
+
+# [Build Example](https://docs.zephyrproject.org/latest/application/index.html)
+
+This SDK is tested on [b_l4s5i_iot01a](https://docs.zephyrproject.org/latest/boards/arm/b_l4s5i_iot01a/doc/index.html) and [stm32f746g_disco](https://docs.zephyrproject.org/latest/boards/arm/stm32f746g_disco/doc/index.html) targets at this moment.
+
+Zephyr targets can be found in [Supported Boards](https://docs.zephyrproject.org/latest/boards/index.html)
+
+## Use `west` tool
 
 ```
-$ west build -b b_l4s5i_iot01a
-$ west build -t menuconfig
+# application configuration
+$ west build -b b_l4s5i_iot01a -t menuconfig
+# flash app to target board
+$ west flash
 ```
 
-Use CMake and Ninja
+## Use CMake and Ninja
 
 ```
 # Use cmake to configure a Ninja-based buildsystem:
 $ cmake -B build -GNinja -DBOARD=b_l4s5i_iot01a
 
+# configure and flash application to target
 $ ninja -C build menuconfig
-
-# Now run ninja on the generated build system:
-$ ninja -C build
-```
-
-Clean build
-
-```
-$ west build -t clean
-$ ninja clean
-$ west build -t pristine
-$ ninja pristine
-```
-
-# Run Application
-
-Run on target board
-
-```
-# Use west
-$ west flash
-
-# Use ninja
-$ ninja flash
-```
-
-Debugging
-
-```
-$ west debug
-
-$ ninja debug
-```
-
-Serial port baud rate 115200
-
-```
-*** Booting Zephyr OS build zephyr-v2.6.0  ***
-Hello World! b_l4s5i_iot01a
-```
-
-# Unit tests
-
-```
-# west test for b_l4s5i_iot01a
-$ west build -b b_l4s5i_iot01a -t menuconfig -- -DUNIT_TESTS=ON
-$ west build
-$ west flash
-
-# cmake test for b_l4s5i_iot01a
-$ cmake -B build -GNinja -DBOARD=b_l4s5i_iot01a -DUNIT_TESTS=ON
 $ ninja -C build flash
-```
-
-# Native build
-
-## setup a virtual network between a Linux host for native_posix target
-
-https://docs.zephyrproject.org/latest/guides/networking/native_posix_setup.html
-
-```
-# app 
-$ west build -b native_posix
-$ west build -t run
-
-# unit test 
-$ west build -b b_l4s5i_iot01a -t menuconfig -- -DUNIT_TESTS=ON
-$ west flash
 ```
