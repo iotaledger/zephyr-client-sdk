@@ -25,27 +25,27 @@ Zephyr targets can be found in [Supported Boards](https://docs.zephyrproject.org
 Set `ZEPHYR_BASE` before using Zephyr build system.
 
 ```shell
-$ export ZEPHYR_BASE="~/zephyrproject/zephyr"
+export ZEPHYR_BASE="~/zephyrproject/zephyr"
 ```
 
 ## Use `west` tool
 
 ```shell
 # application configuration
-$ west build -b b_l4s5i_iot01a -t menuconfig
+west build -b b_l4s5i_iot01a -t menuconfig
 # flash app to target board
-$ west flash
+west flash
 ```
 
 ## Use CMake and Ninja
 
 ```shell
 # Use cmake to configure a Ninja-based buildsystem:
-$ cmake -B build -GNinja -DBOARD=b_l4s5i_iot01a
+cmake -B build -GNinja -DBOARD=b_l4s5i_iot01a
 
 # configure and flash application to target
-$ ninja -C build menuconfig
-$ ninja -C build flash
+ninja -C build menuconfig
+ninja -C build flash
 ```
 
 # Work with nRF-Connect SDK
@@ -55,12 +55,12 @@ Please refer to [Getting Started with nRF-Connect](https://developer.nordicsemi.
 Set `ZEPHYR_BASE` before using Zephyr build system.
 
 ```shell
-$ export ZEPHYR_BASE="~/nRF-Connect-SDK/zephyr"
-$ west build -b nrf9160dk_nrf9160@1.0.0 -t menuconfig -- -DUNIT_TESTS=ON
+export ZEPHYR_BASE="~/nRF-Connect-SDK/zephyr"
+west build -b nrf9160dk_nrf9160@1.0.0 -t menuconfig -- -DUNIT_TESTS=ON
 # make sure ZTEST is enabled and stack size is big enough.
 # CONFIG_ZTEST=y
 # CONFIG_ZTEST_STACKSIZE=5120
-$ west flash
+west flash
 ```
 
 Console output
