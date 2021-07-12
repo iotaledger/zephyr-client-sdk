@@ -1,8 +1,8 @@
 # IOTA Client Development Kit for Zephyr RTOS
 
-This Software Development Kit(SDK) is a bundle of IOTA client library and Zephyr RTOS for embedded client development.
+This Software Development Kit(SDK) is a bundle of IOTA client library and Zephyr RTOS for IOTA client development.
 
-For more details please visit [iota.c](https://iota-c-client.readthedocs.io/en/latest/index.html) and [Zephyr](https://docs.zephyrproject.org/latest/introduction/index.html).
+Please visit [iota.c](https://iota-c-client.readthedocs.io/en/latest/index.html) and [Zephyr](https://docs.zephyrproject.org/latest/introduction/index.html) for more details.
 
 # Hardware Requirements
 
@@ -13,6 +13,36 @@ The hardware requirements are depends on the use case, here are recommendations:
 * True Random Number Generator
 * HMAC-SHA Hardware Accelerator
 * TCP/IP network stack with TLS support
+
+# Demo Commands
+
+## Show Connected Node Info - iota info
+
+```shell
+uart:~$ iota info
+Name: HORNET
+Version: 1.0.2
+Network ID: testnet7
+Bech32HRP: atoi
+Message Pre Sec: 8.50
+isHealthy: true
+Latest Milestone Index: 823831
+Confirmed Milestone Index: 823831
+Pruning Milestone Index: 478476
+Latest Milestone Timestamp: 1626077010
+uart:~$
+```
+## Send Data Message - iota data
+
+```shell
+uart:~$ iota data "IOTA\xF0\x9F\xA6\x8B" "Hello from Zephyr"
+Sending Index: "IOTA🦋", Message: "Hello from Zephyr"
+message ID: 40e02a0f977da9ce66c1ea0715d0afd54b693baa1f48fe2b27055faa72f79cf5
+uart:~$
+```
+The data message on the Explorer
+
+![](images/data_message.png)
 
 # Work with Zephyr
 
