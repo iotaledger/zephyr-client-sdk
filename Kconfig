@@ -45,6 +45,22 @@ endif # APP_WIFI_AUTO
 
 endif # WIFI
 
+config WALLET_SEED
+	string "Wallet SEED"
+	default "RANDOM"
+	help
+	IOTA Seed is a string of 64 characters. Use "RANDOM" generating a random seed for the wallet.
+
+config WALLET_ADDR_PATH
+	string "Address derivation path"
+	default "m/44'/4218'/0'/0'"
+	help
+	IOTA BIP44 path "m/44'/4218'/account/change"
+
+module = IOTA_APP
+module-str = Application
+module-help = Enables logging for IOTA Client application.
+source "subsys/logging/Kconfig.template.log_config"
 endmenu
 
 source "Kconfig.zephyr"

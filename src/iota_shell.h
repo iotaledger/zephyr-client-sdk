@@ -3,4 +3,4 @@
 
 #pragma once
 
-int init_http_client_conf();
+int init_wallet();

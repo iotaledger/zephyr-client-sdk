@@ -1,6 +1,9 @@
 // Copyright 2021 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+#include <logging/log.h>
+LOG_MODULE_REGISTER(app, CONFIG_IOTA_APP_LOG_LEVEL);
+
 #include <inttypes.h>
 #include <shell/shell.h>
 #include <stdio.h>
@@ -12,16 +15,19 @@
 
 #include "client/api/v1/get_node_info.h"
 #include "client/api/v1/send_message.h"
+#include "wallet/wallet.h"
 
-static iota_client_conf_t http_conf;
+// IOTA wallet instance
+static iota_wallet_t *w_ctx = NULL;
 
 static int cmd_info(const struct shell *shell, size_t argc, char **argv) {
   ARG_UNUSED(argc);
   ARG_UNUSED(argv);
 
   res_node_info_t *info = res_node_info_new();
-  if (get_node_info(&http_conf, info) == 0) {
+  if (get_node_info(&w_ctx->endpoint, info) == 0) {
     if (info->is_error == false) {
+      // display node info on console
 #ifdef CONFIG_NEWLIB_LIBC_FLOAT_PRINTF
       printf(
           "Name: %s\nVersion: %s\nNetwork ID: %s\nBech32HRP: %s\nMessage Pre Sec: %.2f\nisHealthy: %s\nLatest "
@@ -58,10 +64,10 @@ static int cmd_data(const struct shell *shell, size_t argc, char **argv) {
   res_send_message_t res = {};
   printf("Sending Index: \"%s\", Message: \"%s\"\n", argv[1], argv[2]);
   // send out text message
-  int err = send_indexation_msg(&http_conf, argv[1], argv[2], &res);
+  int err = send_indexation_msg(&w_ctx->endpoint, argv[1], argv[2], &res);
   if (err) {
     if (res.is_error) {
-      printf("Err response: %s\n", res.u.error->msg);
+      LOG_ERR("Err response: %s", res.u.error->msg);
       res_err_free(res.u.error);
     }
     printf("send indexation failed\n");
@@ -79,40 +85,81 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_iota, SHELL_CMD(info, NULL, "Display node inf
 /* Creating root (level 0) command "iota" without a handler */
 SHELL_CMD_REGISTER(iota, &sub_iota, "IOTA client demo commands", NULL);
 
-int init_http_client_conf() {
+static int init_http_client_conf(iota_wallet_t *w) {
   char const *const http_prefix = "http://";
   char const *const tls_prefix = "https://";
   char const *const url = CONFIG_IOTA_NODE_URL;
 
-  memset(&http_conf, 0, sizeof(http_conf));
-
   if (strncmp(url, http_prefix, strlen(http_prefix)) == 0) {
     size_t s = strlen(http_prefix);
     size_t len = strlen(url) - s;
-    if (len > sizeof(http_conf.host)) {
+    if (len > sizeof(w->endpoint.host)) {
+      LOG_ERR("hostname: %s is too long", url + s);
       return -1;
     }
 
-    memcpy(http_conf.host, url + s, len);
-    http_conf.host[len] = '\0';
+    memcpy(w->endpoint.host, url + s, len);
+    w->endpoint.host[len] = '\0';
 
-    http_conf.use_tls = false;
+    w->endpoint.use_tls = false;
   } else if (strncmp(url, tls_prefix, strlen(tls_prefix)) == 0) {
     size_t s = strlen(tls_prefix);
     size_t len = strlen(url) - s;
-    if (len > sizeof(http_conf.host)) {
+    if (len > sizeof(w->endpoint.host)) {
+      LOG_ERR("hostname: %s is too long", url + s);
       return -1;
     }
 
-    memcpy(http_conf.host, url + s, len);
-    http_conf.host[len] = '\0';
+    memcpy(w->endpoint.host, url + s, len);
+    w->endpoint.host[len] = '\0';
 
-    http_conf.use_tls = true;
+    w->endpoint.use_tls = true;
   } else {
-    printf("Err: Invalid URL format: %s\n", url);
+    LOG_ERR("Err: Invalid URL format: %s", url);
     return -1;
   }
-  http_conf.port = CONFIG_IOTA_NODE_PORT;
-  printf("Node: %s%s:%d\n", http_conf.use_tls ? tls_prefix : http_prefix, http_conf.host, http_conf.port);
+  w->endpoint.port = CONFIG_IOTA_NODE_PORT;
+  printf("Node: %s%s:%d\n", w->endpoint.use_tls ? tls_prefix : http_prefix, w->endpoint.host, w->endpoint.port);
+  return 0;
+}
+
+int init_wallet() {
+  byte_t seed[IOTA_SEED_BYTES] = {};
+  LOG_DBG(" ");
+
+  // validating seed config
+  if (strcmp(CONFIG_WALLET_SEED, "RANDOM") != 0) {
+    if (strlen(CONFIG_WALLET_SEED) != 64) {
+      LOG_ERR("seed length is %d, should be 64", strlen(CONFIG_WALLET_SEED));
+      return -1;
+    }
+    if (hex2bin(CONFIG_WALLET_SEED, strlen(CONFIG_WALLET_SEED), seed, sizeof(seed)) == 0) {
+      LOG_ERR("convert seed to binary failed");
+      return -1;
+    }
+  } else {
+    random_seed(seed);
+  }
+
+  // setup wallet
+  w_ctx = wallet_create(seed, CONFIG_WALLET_ADDR_PATH);
+  if (!w_ctx) {
+    LOG_ERR("Creating wallet object failed");
+    return -1;
+  }
+
+  // http client setup
+  if (init_http_client_conf(w_ctx) != 0) {
+    wallet_destroy(w_ctx);
+    return -1;
+  }
+
+  if (wallet_update_bech32HRP(w_ctx) != 0) {
+    LOG_ERR("update bech32HRP failed");
+    wallet_destroy(w_ctx);
+    return -1;
+  }
+
+  LOG_DBG("init wallet done");
   return 0;
 }

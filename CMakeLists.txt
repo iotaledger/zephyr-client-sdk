@@ -10,6 +10,7 @@ project(iota_app)
 
 option(UNIT_TESTS "Build unit test app" OFF)
 
+# the directory of external libraries
 set(EXT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs")
 
 set(EXT_LIB_SRC
@@ -19,10 +20,13 @@ set(EXT_LIB_SRC
 set(EXT_LIB_INC "${EXT_LIB_DIR}/cjson" "${EXT_LIB_DIR}/blake2"
                 "${EXT_LIB_DIR}/ed25519-donna" "${EXT_LIB_DIR}/uthash")
 
+# the directory of iota client source
 set(IOTA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/iota-c/src")
 
+# iota crypto implementation
 set(IOTA_CRYPTO "${IOTA_SRC_DIR}/crypto/iota_crypto.c")
 
+# iota protocol implementation
 set(IOTA_CORE
     "${IOTA_SRC_DIR}/core/address.c"
     "${IOTA_SRC_DIR}/core/seed.c"
@@ -36,6 +40,7 @@ set(IOTA_CORE
     "${IOTA_SRC_DIR}/core/utils/iota_str.c"
     "${IOTA_SRC_DIR}/core/utils/slip10.c")
 
+# iota client API implementation
 set(IOTA_CLIENT
     "${IOTA_SRC_DIR}/client/network/http_zephyr.c"
     "${IOTA_SRC_DIR}/client/api/json_utils.c"
@@ -54,9 +59,13 @@ set(IOTA_CLIENT
     "${IOTA_SRC_DIR}/client/api/v1/response_error.c"
     "${IOTA_SRC_DIR}/client/api/v1/send_message.c")
 
+# simple wallet reference
+set(IOTA_WALLET "${IOTA_SRC_DIR}/wallet/wallet.c")
+
 message("Unit tests is ${UNIT_TESTS}")
 
 if(UNIT_TESTS)
+  # unit test application, testing iota protocol only
   target_sources(app PRIVATE "tests/test_main.c" ${EXT_LIB_SRC} ${IOTA_CRYPTO}
                              ${IOTA_CORE})
 else()
@@ -65,6 +74,7 @@ else()
   generate_inc_file_for_target(app "src/app-cert.der"
                                "${gen_dir}/app-cert.der.inc")
 
+  # build a full application
   target_sources(
     app
     PRIVATE "src/main.c"
@@ -73,7 +83,8 @@ else()
             ${EXT_LIB_SRC}
             ${IOTA_CRYPTO}
             ${IOTA_CORE}
-            ${IOTA_CLIENT})
+            ${IOTA_CLIENT}
+            ${IOTA_WALLET})
 endif()
 
 # configure ed25519-donna
@@ -82,7 +93,7 @@ target_compile_definitions(
   # ed25519-donna
   PRIVATE ED25519_CUSTOMRANDOM
   PRIVATE ED25519_CUSTOMHASH
-  # iota client
+  # set iota crypto use mbedtls
   PRIVATE CRYPTO_USE_MBEDTLS)
 
 if(UNIT_TESTS)
