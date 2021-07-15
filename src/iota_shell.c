@@ -101,40 +101,74 @@ static int cmd_addr(const struct shell *shell, size_t argc, char **argv) {
     return -1;
   }
 
-  for (uint32_t idx = s; idx < n; idx++) {
+  for (uint32_t idx = s; idx < s + n; idx++) {
     dump_address(w_ctx, idx);
   }
   return 0;
 }
 
 static int cmd_balance(const struct shell *shell, size_t argc, char **argv) {
-  long s = atol(argv[1]);  // starting index
-  long n = atol(argv[2]);  // number of addresses
-  if (s < 0 || n < 0) {
-    shell_print(shell, "invalid index or numbers");
-    return -1;
-  }
-
   uint64_t value = 0;
-  for (uint32_t idx = s; idx < n; idx++) {
-    if (wallet_balance_by_index(w_ctx, idx, &value) != 0) {
-      LOG_ERR("wallet get balance [%" PRIu32 "]failed\n", idx);
-      break;
+
+  if (argc == 2) {
+    byte_t addr[IOTA_ADDRESS_BYTES] = {};
+    // an address hash
+    if (strncmp(argv[1], w_ctx->bech32HRP, strlen(w_ctx->bech32HRP)) != 0) {
+      shell_print(shell, "invalid address hash");
+      return -1;
     }
-    dump_address(w_ctx, idx);
-    printf("balance: %" PRIu64 "\n", value);
+
+    if (address_from_bech32(w_ctx->bech32HRP, argv[1], addr) != 0) {
+      shell_print(shell, "convert bech32 to binary failed");
+      return -1;
+    }
+
+    // `addr + 1` to remove address version since this API takes ed25519 address
+    if (wallet_balance_by_address(w_ctx, addr + 1, &value) != 0) {
+      shell_print(shell, "get balance failed");
+      return -1;
+    } else {
+      shell_print(shell, "balance: %" PRIu64, value);
+    }
+
+  } else {
+    // index and number
+    long s = atol(argv[1]);  // starting index
+    long n = atol(argv[2]);  // number of addresses
+    if (s < 0 || n < 0) {
+      shell_print(shell, "invalid index or numbers");
+      return -1;
+    }
+
+    for (uint32_t idx = s; idx < s + n; idx++) {
+      if (wallet_balance_by_index(w_ctx, idx, &value) != 0) {
+        LOG_ERR("wallet get balance [%" PRIu32 "]failed\n", idx);
+        break;
+      }
+      dump_address(w_ctx, idx);
+      printf("balance: %" PRIu64 "\n", value);
+    }
   }
 
   return 0;
 }
 
 /* Creating subcommands (level 1 command) array for command "iota". */
-SHELL_STATIC_SUBCMD_SET_CREATE(
-    sub_iota, SHELL_CMD(info, NULL, "Display node info", cmd_info),
-    SHELL_CMD_ARG(data, NULL, "Send data message.\n Ex: iota data \"my ID\" \"hello iota\"", cmd_data, 3, 0),
-    SHELL_CMD_ARG(addr, NULL, "Get addresses from a given range.\n Ex: iota addr 0 5", cmd_addr, 3, 0),
-    SHELL_CMD_ARG(balance, NULL, "Get balance from a given range.\n Ex: iota balance 0 5", cmd_balance, 3, 0),
-    SHELL_SUBCMD_SET_END);
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_iota, SHELL_CMD(info, NULL, "Display node info", cmd_info),
+                               SHELL_CMD_ARG(data, NULL,
+                                             "Send data message.\n "
+                                             "Ex: iota data \"my ID\" \"hello iota\"",
+                                             cmd_data, 3, 0),
+                               SHELL_CMD_ARG(addr, NULL,
+                                             "Get addresses from a given range.\n "
+                                             "Ex: iota addr 0 5",
+                                             cmd_addr, 3, 0),
+                               SHELL_CMD_ARG(balance, NULL,
+                                             "Get balance from an address or a given range.\n "
+                                             "Ex: iota balance 0 5\n "
+                                             "iota balance atoi1qzdglt68p...xtav6e82tp",
+                                             cmd_balance, 2, 1),
+                               SHELL_SUBCMD_SET_END);
 /* Creating root (level 0) command "iota" without a handler */
 SHELL_CMD_REGISTER(iota, &sub_iota, "IOTA client demo commands", NULL);
 
