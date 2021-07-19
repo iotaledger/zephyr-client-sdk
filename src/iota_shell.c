@@ -109,9 +109,9 @@ static int cmd_addr(const struct shell *shell, size_t argc, char **argv) {
 
 static int cmd_balance(const struct shell *shell, size_t argc, char **argv) {
   uint64_t value = 0;
+  byte_t addr[IOTA_ADDRESS_BYTES] = {};
 
   if (argc == 2) {
-    byte_t addr[IOTA_ADDRESS_BYTES] = {};
     // an address hash
     if (strncmp(argv[1], w_ctx->bech32HRP, strlen(w_ctx->bech32HRP)) != 0) {
       shell_print(shell, "invalid address hash");
@@ -119,7 +119,7 @@ static int cmd_balance(const struct shell *shell, size_t argc, char **argv) {
     }
 
     if (address_from_bech32(w_ctx->bech32HRP, argv[1], addr) != 0) {
-      shell_print(shell, "convert bech32 to binary failed");
+      shell_print(shell, "convert address to binary failed");
       return -1;
     }
 
@@ -153,6 +153,41 @@ static int cmd_balance(const struct shell *shell, size_t argc, char **argv) {
   return 0;
 }
 
+static int cmd_send(const struct shell *shell, size_t argc, char **argv) {
+  char msg_id[IOTA_MESSAGE_ID_HEX_BYTES + 1] = {};
+  char const data[] = "sent from iota.c";
+  byte_t recv_addr[IOTA_ADDRESS_BYTES] = {};
+  long addr_index = atol(argv[1]);  // address index
+  long value = atol(argv[3]);       // tokens
+
+  if (addr_index < 0 || value <= 0) {
+    shell_print(shell, "invalid index or token value");
+    return -1;
+  }
+
+  if (strncmp(argv[2], w_ctx->bech32HRP, strlen(w_ctx->bech32HRP)) != 0) {
+    shell_print(shell, "invalid address hash");
+    return -1;
+  }
+
+  if (address_from_bech32(w_ctx->bech32HRP, argv[2], recv_addr) != 0) {
+    shell_print(shell, "convert address to binary failed");
+    return -1;
+  }
+
+  shell_print(shell, "Sending %ld Mi to %s", value, argv[2]);
+  value = value * 1000000;  // Mi
+  int err = wallet_send(w_ctx, (uint32_t)addr_index, recv_addr + 1, value, "ZephyrWallet", (byte_t *)data, sizeof(data),
+                        msg_id, sizeof(msg_id));
+  if (err) {
+    shell_print(shell, "send transaction failed");
+    return -1;
+  }
+
+  shell_print(shell, "Message HASH: %s", msg_id);
+  return 0;
+}
+
 /* Creating subcommands (level 1 command) array for command "iota". */
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_iota, SHELL_CMD(info, NULL, "Display node info", cmd_info),
                                SHELL_CMD_ARG(data, NULL,
@@ -168,6 +203,10 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_iota, SHELL_CMD(info, NULL, "Display node inf
                                              "Ex: iota balance 0 5\n "
                                              "iota balance atoi1qzdglt68p...xtav6e82tp",
                                              cmd_balance, 2, 1),
+                               SHELL_CMD_ARG(send, NULL,
+                                             "send value transaction to an address\n "
+                                             "Ex: iota send 0 atoi1qzdglt68p...xtav6e82tp 3",
+                                             cmd_send, 4, 0),
                                SHELL_SUBCMD_SET_END);
 /* Creating root (level 0) command "iota" without a handler */
 SHELL_CMD_REGISTER(iota, &sub_iota, "IOTA client demo commands", NULL);

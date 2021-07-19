@@ -84,6 +84,15 @@ balance: 3000000
 uart:~$
 ```
 
+## Send valued transaction - iota send
+
+```shell
+uart:~$ iota send 1 atoi1qpzlyyylzxdfjwmh8pkgvxu9ecp0yaq74x74975g0cxjwzlhu2f0gluvshk 1
+Sending 1000000 Mi to atoi1qpzlyyylzxdfjwmh8pkgvxu9ecp0yaq74x74975g0cxjwzlhu2f0gluvshk
+Message HASH: 7a5119c4fb09a15b1c05a5c2cdc70ba089ef6eeb3175d64271d3a376cc6244ab
+uart:~$
+```
+
 # Work with Zephyr
 
 Please refer to [Getting Started with Zephyr](https://docs.zephyrproject.org/latest/getting_started/index.html) for setting up your development environment.
