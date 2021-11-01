@@ -5,7 +5,7 @@ menu "IOTA SDK Config"
 
 config IOTA_NODE_URL
 	string "IOTA Node URL"
-	default "https://api.lb-0.testnet.chrysalis2.com"
+	default "https://chrysalis-nodes.iota.org/"
 
 config IOTA_NODE_PORT
 	int "The prot number to connect"

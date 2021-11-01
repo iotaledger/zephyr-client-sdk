@@ -8,8 +8,6 @@ cmake_minimum_required(VERSION 3.13.1)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(iota_app)
 
-option(UNIT_TESTS "Build unit test app" OFF)
-
 # the directory of external libraries
 set(EXT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs")
 
@@ -62,9 +60,8 @@ set(IOTA_CLIENT
 # simple wallet reference
 set(IOTA_WALLET "${IOTA_SRC_DIR}/wallet/wallet.c")
 
-message("Unit tests is ${UNIT_TESTS}")
-
-if(UNIT_TESTS)
+if(CONFIG_ZTEST)
+  message("Unit tests is enabled")
   # unit test application, testing iota protocol only
   target_sources(app PRIVATE "tests/test_main.c" ${EXT_LIB_SRC} ${IOTA_CRYPTO}
                              ${IOTA_CORE})
@@ -96,7 +93,7 @@ target_compile_definitions(
   # set iota crypto use mbedtls
   PRIVATE CRYPTO_USE_MBEDTLS)
 
-if(UNIT_TESTS)
+if(CONFIG_ZTEST)
   target_include_directories(app PUBLIC ${EXT_LIB_INC} ${IOTA_SRC_DIR}
                                         ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 else()
