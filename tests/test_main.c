@@ -111,7 +111,7 @@ static void test_address_gen(void) {
                        IOTA_SEED_BYTES),
              "");
 
-  zassert_ok(address_from_path(seed, "m/44'/4218'/0'/0'/0'", addr_from_path), "");
+  zassert_ok(address_from_path(seed, sizeof(seed), "m/44'/4218'/0'/0'/0'", addr_from_path), "");
   // dump_hex(addr_from_path, ED25519_ADDRESS_BYTES);
 
   // ed25519 address to IOTA address
@@ -251,7 +251,7 @@ static void bench_address_generating(void) {
     }
     ed_addr[0] = 0;
     start_time = k_uptime_get();
-    if (address_from_path(seed, path_buf, ed_addr + 1) == 0) {
+    if (address_from_path(seed,sizeof(seed), path_buf, ed_addr + 1) == 0) {
       if (address_2_bech32(ed_addr, "iota", bech32_addr) != 0) {
         printf("convert to bech32 failed\n");
         break;
@@ -274,21 +274,6 @@ static void bench_address_generating(void) {
 
 struct net_mgmt_event_callback net_event_cb;
 #define HTTPBIN_HOST "httpbin.org"
-
-#if defined(CONFIG_APP_WIFI_AUTO)
-static void on_wifi_event(struct net_mgmt_event_callback* cb, uint32_t mgmt_event, struct net_if* iface) {
-  const struct wifi_status* status = (const struct wifi_status*)cb->info;
-  if (status->status == 0) {
-    http_client_test();
-  }
-}
-#elif defined(CONFIG_NET_DHCPV4)
-static void on_dhcp_event(struct net_mgmt_event_callback* cb, uint32_t mgmt_event, struct net_if* iface) {
-  if (mgmt_event == NET_EVENT_IPV4_ADDR_ADD) {
-    http_client_test();
-  }
-}
-#endif
 
 static void test_http_post() {
   static char const long_str[] =
@@ -392,6 +377,23 @@ static void http_client_test() {
 
   ztest_run_test_suite(http_client);
 }
+
+#if defined(CONFIG_APP_WIFI_AUTO)
+static void on_wifi_event(struct net_mgmt_event_callback* cb, uint32_t mgmt_event, struct net_if* iface) {
+  const struct wifi_status* status = (const struct wifi_status*)cb->info;
+  if (status->status == 0) {
+    http_client_test();
+  }
+}
+#elif defined(CONFIG_NET_DHCPV4)
+static void on_dhcp_event(struct net_mgmt_event_callback* cb, uint32_t mgmt_event, struct net_if* iface) {
+  if (mgmt_event == NET_EVENT_IPV4_ADDR_ADD) {
+    http_client_test();
+  }
+}
+#endif
+
+//=======================End of HTTP Client Tests==================================
 
 void test_main(void) {
   printf("====Unit Test on %s====\n", CONFIG_BOARD);
