@@ -13,10 +13,13 @@ set(EXT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs")
 
 set(EXT_LIB_SRC
     "${EXT_LIB_DIR}/cjson/cJSON.c" "${EXT_LIB_DIR}/blake2/blake2b-ref.c"
-    "${EXT_LIB_DIR}/ed25519-donna/ed25519.c")
+    "${EXT_LIB_DIR}/ed25519-donna/ed25519.c"
+    "${EXT_LIB_DIR}/utf8proc/utf8proc.c")
 
-set(EXT_LIB_INC "${EXT_LIB_DIR}/cjson" "${EXT_LIB_DIR}/blake2"
-                "${EXT_LIB_DIR}/ed25519-donna" "${EXT_LIB_DIR}/uthash")
+set(EXT_LIB_INC
+    "${EXT_LIB_DIR}/cjson" "${EXT_LIB_DIR}/blake2"
+    "${EXT_LIB_DIR}/ed25519-donna" "${EXT_LIB_DIR}/uthash"
+    "${EXT_LIB_DIR}/utf8proc")
 
 # the directory of iota client source
 set(IOTA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/iota-c/src")
