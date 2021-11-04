@@ -6,7 +6,18 @@
 #include <stdlib.h>
 #include <ztest.h>
 
+// for network test cases
+#include <inttypes.h>
+#if defined(CONFIG_APP_WIFI_AUTO)
+#include <net/wifi_mgmt.h>
+#include "wifi.h"
+#elif defined(CONFIG_NET_DHCPV4)
+#include <net/net_event.h>
+#include <net/net_if.h>
+#endif
+
 #include "blake2b_data.h"
+#include "client/network/http.h"
 #include "core/models/message.h"
 #include "core/models/payloads/transaction.h"
 #include "core/utils/byte_buffer.h"
@@ -80,8 +91,8 @@ static void test_HMACSHA(void) {
 }
 
 static void test_address_gen(void) {
-  char const *const exp_iot_bech32 = "iot1qpg4tqh7vj9s7y9zk2smj8t4qgvse9um42l7apdkhw6syp5ju4w3v6ffg6n";
-  char const *const exp_iota_bech32 = "iota1qpg4tqh7vj9s7y9zk2smj8t4qgvse9um42l7apdkhw6syp5ju4w3v79tf3l";
+  char const* const exp_iot_bech32 = "iot1qpg4tqh7vj9s7y9zk2smj8t4qgvse9um42l7apdkhw6syp5ju4w3v6ffg6n";
+  char const* const exp_iota_bech32 = "iota1qpg4tqh7vj9s7y9zk2smj8t4qgvse9um42l7apdkhw6syp5ju4w3v79tf3l";
   byte_t exp_addr[IOTA_ADDRESS_BYTES] = {0x00, 0x51, 0x55, 0x82, 0xfe, 0x64, 0x8b, 0xf,  0x10, 0xa2, 0xb2,
                                          0xa1, 0xb9, 0x1d, 0x75, 0x2,  0x19, 0xc,  0x97, 0x9b, 0xaa, 0xbf,
                                          0xee, 0x85, 0xb6, 0xbb, 0xb5, 0x2,  0x6,  0x92, 0xe5, 0x5d, 0x16};
@@ -154,10 +165,10 @@ static void test_message_with_tx(void) {
                        128, seed_keypair.priv, ED_PRIVATE_KEY_BYTES),
              "");
 
-  core_message_t *msg = core_message_new();
+  core_message_t* msg = core_message_new();
   zassert_not_null(msg, "");
 
-  transaction_payload_t *tx = tx_payload_new();
+  transaction_payload_t* tx = tx_payload_new();
   zassert_not_null(tx, "");
 
   zassert_ok(tx_payload_add_input_with_key(tx, tx_id0, 0, seed_keypair.pub, seed_keypair.priv), "");
@@ -193,7 +204,7 @@ static void tx_essence_serialization(void) {
                                                  0x7c, 0x3d, 0xb7, 0x81, 0x98, 0x14, 0x7d, 0x5f, 0x1f, 0x92};
   static byte_t tx_id_empty[TRANSACTION_ID_BYTES] = {};
 
-  transaction_essence_t *essence = tx_essence_new();
+  transaction_essence_t* essence = tx_essence_new();
   zassert_not_null(essence, "");
   zassert_ok(tx_essence_serialize_length(essence), "");
 
@@ -210,7 +221,7 @@ static void tx_essence_serialization(void) {
   size_t essence_buf_len = tx_essence_serialize_length(essence);
   zassert_not_equal(0, essence_buf_len, "");
 
-  byte_t *essence_buf = (byte_t *)malloc(essence_buf_len);
+  byte_t* essence_buf = (byte_t*)malloc(essence_buf_len);
   zassert_not_null(essence_buf, "");
   zassert_true(tx_essence_serialize(essence, essence_buf) == essence_buf_len, "");
   // dump_hex(essence_buf, essence_buf_len);
@@ -259,9 +270,131 @@ static void bench_address_generating(void) {
   printf("\t%" PRId64 "\t%" PRId64 "\t%.2f\t%" PRId64 "\n", min, max, (sum / (float)ADDR_NUMS), sum);
 }
 
+//=======================HTTP Client Tests==================================
+
+struct net_mgmt_event_callback net_event_cb;
+#define HTTPBIN_HOST "httpbin.org"
+
+#if defined(CONFIG_APP_WIFI_AUTO)
+static void on_wifi_event(struct net_mgmt_event_callback* cb, uint32_t mgmt_event, struct net_if* iface) {
+  const struct wifi_status* status = (const struct wifi_status*)cb->info;
+  if (status->status == 0) {
+    http_client_test();
+  }
+}
+#elif defined(CONFIG_NET_DHCPV4)
+static void on_dhcp_event(struct net_mgmt_event_callback* cb, uint32_t mgmt_event, struct net_if* iface) {
+  if (mgmt_event == NET_EVENT_IPV4_ADDR_ADD) {
+    http_client_test();
+  }
+}
+#endif
+
+static void test_http_post() {
+  static char const long_str[] =
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum blandit ultrices sapien eget volutpat. "
+      "Nullam hendrerit rhoncus felis, a dapibus sapien gravida quis. Pellentesque eu lacus lectus. Fusce fermentum "
+      "libero mauris, gravida sodales elit rutrum in. Aenean id orci ultrices, eleifend sapien vel, tempor ante. "
+      "Aenean lacinia urna sit amet nisl dapibus, eget laoreet mauris ullamcorper. Nunc posuere vulputate ultrices. "
+      "Nunc faucibus ex vitae libero lacinia laoreet. Nam condimentum justo at semper lacinia. In mollis neque feugiat "
+      "diam tempor scelerisque. Duis pellentesque ullamcorper egestas. Pellentesque posuere orci ut malesuada "
+      "ullamcorper. Donec sit amet aliquet leo. Suspendisse eget purus eget massa tempor molestie. Vestibulum id "
+      "tellus et sapien pretium ultricies. Suspendisse aliquam sagittis massa in tincidunt. Aliquam malesuada, arcu a "
+      "lobortis tincidunt, neque dolor facilisis metus, eu lacinia sapien arcu in turpis. Mauris lobortis sit amet "
+      "metus et varius. Aliquam ut eleifend mauris, ac pretium urna. Sed mauris lectus, mattis nec ullamcorper ac, "
+      "convallis eget purus. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. "
+      "Maecenas ut nisl vitae nulla ultrices sollicitudin. Donec sed nunc feugiat, pretium nisl vel, ornare magna. "
+      "Nunc quis turpis pharetra, pharetra risus quis, ornare metus. Morbi volutpat magna sem, eget scelerisque tellus "
+      "elementum id. Mauris sollicitudin velit in metus tristique, feugiat semper magna sollicitudin.";
+
+  static char const short_str[] = "Hello!";
+  http_client_init();
+
+  //=========Sending long string==========
+  http_client_config_t conf = {.host = HTTPBIN_HOST, .path = "/post", .port = 80, .use_tls = false};
+  byte_buf_t* response = byte_buf_new();
+  byte_buf_t* req = byte_buf_new_with_data((byte_t*)long_str, strlen(long_str));
+  long st = 0;
+  zassert_not_null(response, "");
+  zassert_not_null(req, "");
+  zassert_equal(0, http_client_post(&conf, req, response, &st), "");
+  zassert_equal(st, 200, "");
+  zassert_not_null(response->data, "");
+  zassert_equal(true, byte_buf2str(response), "");
+  printf("%s\n", response->data);
+  byte_buf_free(response);
+  response = NULL;
+  byte_buf_free(req);
+  req = NULL;
+  k_msleep(2000);
+
+  //=========Sending short string==========
+  response = byte_buf_new();
+  zassert_not_null(response, "");
+  req = byte_buf_new_with_data((byte_t*)short_str, strlen(short_str));
+  zassert_not_null(req, "");
+  zassert_equal(0, http_client_post(&conf, req, response, &st), "");
+  zassert_equal(st, 200, "");
+  zassert_not_null(response->data, "");
+  zassert_equal(true, byte_buf2str(response), "");
+  printf("%s\n", response->data);
+  byte_buf_free(response);
+  byte_buf_free(req);
+  k_msleep(2000);
+}
+
+static void test_http_get(void) {
+  http_client_init();
+  http_client_config_t conf = {.host = HTTPBIN_HOST, .path = "/get", .port = 80, .use_tls = false};
+  byte_buf_t* response = byte_buf_new();
+  long st = 0;
+  zassert_equal(0, http_client_get(&conf, response, &st), "");
+  zassert_equal(st, 200, "");
+  zassert_not_null(response->data, "");
+  byte_buf2str(response);  // convert data to string for printf debugging.
+  printf("%s\n", response->data);
+  byte_buf_free(response);
+  k_msleep(2000);
+}
+
+static void test_http_stream(void) {
+  http_client_init();
+  http_client_config_t conf = {.host = HTTPBIN_HOST, .path = "/stream-bytes/101", .port = 80, .use_tls = false};
+  byte_buf_t* response = byte_buf_new();
+  long st = 0;
+  zassert_not_null(response, "");
+  zassert_equal(0, http_client_get(&conf, response, &st), "");
+  zassert_equal(200, st, "");
+  zassert_not_null(response->data, "");
+  zassert_equal(101, response->len, "");
+  byte_buf_free(response);
+  response = NULL;
+  k_msleep(2000);
+
+  conf.path = "/stream-bytes/1500";
+  response = byte_buf_new();
+  zassert_not_null(response, "");
+  zassert_equal(0, http_client_get(&conf, response, &st), "");
+  zassert_equal(200, st, "");
+  zassert_not_null(response->data, "");
+  zassert_equal(1500, response->len, "");
+  byte_buf_free(response);
+  k_msleep(2000);
+}
+
+static void http_client_test() {
+  // clang-format off
+  ztest_test_suite(http_client,
+    ztest_unit_test(test_http_post),
+    ztest_unit_test(test_http_get),
+    ztest_unit_test(test_http_stream));
+  // clang-format on
+
+  ztest_run_test_suite(http_client);
+}
+
 void test_main(void) {
   printf("====Unit Test on %s====\n", CONFIG_BOARD);
-
   // clang-format off
   ztest_test_suite(iota_crypto,
     ztest_unit_test(test_blake2b),
@@ -285,4 +418,21 @@ void test_main(void) {
   // clang-format on
 
   ztest_run_test_suite(iota_bench);
+
+// HTTP Client test
+#if defined(CONFIG_APP_WIFI_AUTO)
+  // wait for network event
+  net_mgmt_init_event_callback(&net_event_cb, on_wifi_event, NET_EVENT_WIFI_CONNECT_RESULT);
+  net_mgmt_add_event_callback(&net_event_cb);
+  // wifi auto connect
+  wifi_connect();
+#elif defined(CONFIG_NET_DHCPV4)
+  // wait for network event
+  net_mgmt_init_event_callback(&net_event_cb, on_dhcp_event, (NET_EVENT_IPV4_ADDR_ADD | NET_EVENT_IPV4_ADDR_DEL));
+  net_mgmt_add_event_callback(&net_event_cb);
+  // enable dhcpv4 for eth
+  struct net_if* iface;
+  iface = net_if_get_default();
+  net_dhcpv4_start(iface);
+#endif
 }

@@ -63,8 +63,10 @@ set(IOTA_WALLET "${IOTA_SRC_DIR}/wallet/wallet.c")
 if(CONFIG_ZTEST)
   message("Unit tests is enabled")
   # unit test application, testing iota protocol only
-  target_sources(app PRIVATE "tests/test_main.c" ${EXT_LIB_SRC} ${IOTA_CRYPTO}
-                             ${IOTA_CORE})
+  target_sources(
+    app PRIVATE "tests/test_main.c" ${EXT_LIB_SRC} ${IOTA_CRYPTO} ${IOTA_CORE}
+                "${IOTA_SRC_DIR}/client/network/http_zephyr.c")
+
 else()
   # add TLS certification
   set(gen_dir ${ZEPHYR_BINARY_DIR}/include/generated/)
