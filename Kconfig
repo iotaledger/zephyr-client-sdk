@@ -5,7 +5,7 @@ menu "IOTA SDK Config"
 
 config IOTA_NODE_URL
 	string "IOTA Node URL"
-	default "https://api.lb-0.testnet.chrysalis2.com"
+	default "https://chrysalis-nodes.iota.org/"
 
 config IOTA_NODE_PORT
 	int "The prot number to connect"
@@ -45,17 +45,11 @@ endif # APP_WIFI_AUTO
 
 endif # WIFI
 
-config WALLET_SEED
-	string "Wallet SEED"
+config WALLET_MNEMONIC
+	string "Wallet MNEMONIC"
 	default "RANDOM"
 	help
-	IOTA Seed is a string of 64 characters. Use "RANDOM" generating a random seed for the wallet.
-
-config WALLET_ADDR_PATH
-	string "Address derivation path"
-	default "m/44'/4218'/0'/0'"
-	help
-	IOTA BIP44 path "m/44'/4218'/account/change"
+	The mnemonic sentence of this wallet
 
 module = IOTA_APP
 module-str = Application

@@ -8,17 +8,18 @@ cmake_minimum_required(VERSION 3.13.1)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(iota_app)
 
-option(UNIT_TESTS "Build unit test app" OFF)
-
 # the directory of external libraries
 set(EXT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs")
 
 set(EXT_LIB_SRC
     "${EXT_LIB_DIR}/cjson/cJSON.c" "${EXT_LIB_DIR}/blake2/blake2b-ref.c"
-    "${EXT_LIB_DIR}/ed25519-donna/ed25519.c")
+    "${EXT_LIB_DIR}/ed25519-donna/ed25519.c"
+    "${EXT_LIB_DIR}/utf8proc/utf8proc.c")
 
-set(EXT_LIB_INC "${EXT_LIB_DIR}/cjson" "${EXT_LIB_DIR}/blake2"
-                "${EXT_LIB_DIR}/ed25519-donna" "${EXT_LIB_DIR}/uthash")
+set(EXT_LIB_INC
+    "${EXT_LIB_DIR}/cjson" "${EXT_LIB_DIR}/blake2"
+    "${EXT_LIB_DIR}/ed25519-donna" "${EXT_LIB_DIR}/uthash"
+    "${EXT_LIB_DIR}/utf8proc")
 
 # the directory of iota client source
 set(IOTA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/iota-c/src")
@@ -35,6 +36,7 @@ set(IOTA_CORE
     "${IOTA_SRC_DIR}/core/models/payloads/indexation.c"
     "${IOTA_SRC_DIR}/core/models/payloads/transaction.c"
     "${IOTA_SRC_DIR}/core/models/message.c"
+    "${IOTA_SRC_DIR}/core/models/unlock_block.c"
     "${IOTA_SRC_DIR}/core/utils/bech32.c"
     "${IOTA_SRC_DIR}/core/utils/byte_buffer.c"
     "${IOTA_SRC_DIR}/core/utils/iota_str.c"
@@ -60,14 +62,16 @@ set(IOTA_CLIENT
     "${IOTA_SRC_DIR}/client/api/v1/send_message.c")
 
 # simple wallet reference
-set(IOTA_WALLET "${IOTA_SRC_DIR}/wallet/wallet.c")
+set(IOTA_WALLET "${IOTA_SRC_DIR}/wallet/wallet.c"
+                "${IOTA_SRC_DIR}/wallet/bip39.c")
 
-message("Unit tests is ${UNIT_TESTS}")
-
-if(UNIT_TESTS)
+if(CONFIG_ZTEST)
+  message("Unit tests is enabled")
   # unit test application, testing iota protocol only
-  target_sources(app PRIVATE "tests/test_main.c" ${EXT_LIB_SRC} ${IOTA_CRYPTO}
-                             ${IOTA_CORE})
+  target_sources(
+    app PRIVATE "tests/test_main.c" ${EXT_LIB_SRC} ${IOTA_CRYPTO} ${IOTA_CORE}
+                "${IOTA_SRC_DIR}/client/network/http_zephyr.c")
+
 else()
   # add TLS certification
   set(gen_dir ${ZEPHYR_BINARY_DIR}/include/generated/)
@@ -87,16 +91,20 @@ else()
             ${IOTA_WALLET})
 endif()
 
-# configure ed25519-donna
+# configure iota client lib
 target_compile_definitions(
   app
-  # ed25519-donna
+  # crypto use mbedtls, ed25519-donna, blake2b ref
+  PRIVATE CRYPTO_USE_MBEDTLS
+  PRIVATE CRYPTO_USE_ED25519_DONNA
+  PRIVATE CRYPTO_USE_BLAKE2B_REF
+  # ed25519-donna config
   PRIVATE ED25519_CUSTOMRANDOM
   PRIVATE ED25519_CUSTOMHASH
-  # set iota crypto use mbedtls
-  PRIVATE CRYPTO_USE_MBEDTLS)
+  # Support English mnemonic only
+  PRIVATE BIP39_ENGLISH_ONLY)
 
-if(UNIT_TESTS)
+if(CONFIG_ZTEST)
   target_include_directories(app PUBLIC ${EXT_LIB_INC} ${IOTA_SRC_DIR}
                                         ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 else()

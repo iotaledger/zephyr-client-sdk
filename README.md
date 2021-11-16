@@ -127,6 +127,56 @@ $ ninja -C build menuconfig
 $ ninja -C build flash
 ```
 
+## Unit Testing
+
+Test application is located in `tests` directory and can be enabled by `CONFIG_ZTEST` via menuconfig.
+
+```shell
+$ west build -b b_l4s5i_iot01a -t menuconfig
+# make sure ZTEST is enabled and stack size is big enough.
+# CONFIG_ZTEST=y
+# CONFIG_ZTEST_STACKSIZE=5120
+$ west flash
+```
+
+```
+uart:~$ *** Booting Zephyr OS build zephyr-v2.7.0  ***
+====Unit Test on b_l4s5i_iot01a====
+Running test suite iota_crypto
+===================================================================
+START - test_blake2b
+ PASS - test_blake2b in 0.109 seconds
+===================================================================
+START - test_HMACSHA
+ PASS - test_HMACSHA in 0.3 seconds
+===================================================================
+Test suite iota_crypto succeeded
+Running test suite iota_core
+===================================================================
+START - test_address_gen
+ PASS - test_address_gen in 0.25 seconds
+===================================================================
+START - test_message_with_tx
+ PASS - test_message_with_tx in 0.11 seconds
+===================================================================
+START - tx_essence_serialization
+[tx_essence_serialize_length:106] an input is needed
+ PASS - tx_essence_serialization in 0.6 seconds
+===================================================================
+Test suite iota_core succeeded
+Running test suite iota_bench
+===================================================================
+START - bench_address_generating
+Bench 100 address generation
+	min(ms)	max(ms)	avg(ms)	total(ms)
+	15	16	15.42	1542
+ PASS - bench_address_generating in 1.554 seconds
+===================================================================
+Test suite iota_bench succeeded
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
+```
+
 # Work with nRF-Connect SDK
 
 Please refer to [Getting Started with nRF-Connect](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/getting_started.html) for setting up your development environment.
@@ -135,7 +185,7 @@ Set `ZEPHYR_BASE` before using Zephyr build system.
 
 ```shell
 $ export ZEPHYR_BASE="~/nRF-Connect-SDK/zephyr"
-$ west build -b nrf9160dk_nrf9160@1.0.0 -t menuconfig -- -DUNIT_TESTS=ON
+$ west build -b nrf9160dk_nrf9160@1.0.0 -t menuconfig
 # make sure ZTEST is enabled and stack size is big enough.
 # CONFIG_ZTEST=y
 # CONFIG_ZTEST_STACKSIZE=5120

@@ -11,10 +11,12 @@ LOG_MODULE_REGISTER(app, CONFIG_IOTA_APP_LOG_LEVEL);
 
 #include <net/http_client.h>
 #include <net/socket.h>
-#include "client/network/http.h"
 
+#include "client/api/v1/get_balance.h"
 #include "client/api/v1/get_node_info.h"
 #include "client/api/v1/send_message.h"
+#include "client/network/http.h"
+#include "wallet/bip39.h"
 #include "wallet/wallet.h"
 
 // IOTA wallet instance
@@ -78,78 +80,85 @@ static int cmd_data(const struct shell *shell, size_t argc, char **argv) {
   return 0;
 }
 
-static void dump_address(iota_wallet_t *w, uint32_t index) {
-  byte_t addr_wit_version[IOTA_ADDRESS_BYTES] = {};
-  char tmp_bech32_addr[100] = {};
+static void dump_address(iota_wallet_t *w, uint32_t index, bool is_change) {
+  char tmp_bech32_addr[65];
+  byte_t tmp_addr[ED25519_ADDRESS_BYTES];
 
-  addr_wit_version[0] = ADDRESS_VER_ED25519;
-  wallet_address_by_index(w, index, addr_wit_version + 1);
-  address_2_bech32(addr_wit_version, w->bech32HRP, tmp_bech32_addr);
+  wallet_bech32_from_index(w, is_change, index, tmp_bech32_addr);
+  wallet_address_from_index(w, is_change, index, tmp_addr);
+
   printf("Addr[%" PRIu32 "]\n", index);
   // print ed25519 address without version filed.
   printf("\t");
-  dump_hex_str(addr_wit_version + 1, ED25519_ADDRESS_BYTES);
+  dump_hex_str(tmp_addr, ED25519_ADDRESS_BYTES);
   // print out
   printf("\t%s\n", tmp_bech32_addr);
 }
 
 static int cmd_addr(const struct shell *shell, size_t argc, char **argv) {
-  long s = atol(argv[1]);  // starting index
-  long n = atol(argv[2]);  // number of addresses
+  bool change = (bool)argv[1];  // address type: 0 or 1
+  long s = atol(argv[2]);       // starting index
+  long n = atol(argv[3]);       // number of addresses
   if (s < 0 || n < 0) {
     shell_print(shell, "invalid index or numbers");
     return -1;
   }
 
   for (uint32_t idx = s; idx < s + n; idx++) {
-    dump_address(w_ctx, idx);
+    dump_address(w_ctx, idx, change);
   }
   return 0;
 }
 
 static int cmd_balance(const struct shell *shell, size_t argc, char **argv) {
-  uint64_t value = 0;
-  byte_t addr[IOTA_ADDRESS_BYTES] = {};
-
   if (argc == 2) {
+    // new API response object
+    res_balance_t *res = res_balance_new();
+    if (!res) {
+      LOG_ERR("allocate balance object failed\n");
+      return -1;
+    }
+
     // an address hash
     if (strncmp(argv[1], w_ctx->bech32HRP, strlen(w_ctx->bech32HRP)) != 0) {
       shell_print(shell, "invalid address hash");
+      res_balance_free(res);
       return -1;
     }
 
-    if (address_from_bech32(w_ctx->bech32HRP, argv[1], addr) != 0) {
-      shell_print(shell, "convert address to binary failed");
-      return -1;
-    }
-
-    // `addr + 1` to remove address version since this API takes ed25519 address
-    if (wallet_balance_by_address(w_ctx, addr + 1, &value) != 0) {
+    if (get_balance(&w_ctx->endpoint, true, argv[1], res) != 0) {
       shell_print(shell, "get balance failed");
+      res_balance_free(res);
       return -1;
-    } else {
-      shell_print(shell, "balance: %" PRIu64, value);
     }
 
+    if (res->is_error) {
+      // got an error from node
+      LOG_ERR("Node: %s\n", res->u.error->msg);
+    }
+
+    shell_print(shell, "balance: %" PRIu64 "", res->u.output_balance->balance);
+    // clean up
+    res_balance_free(res);
   } else {
-    // index and number
-    long s = atol(argv[1]);  // starting index
-    long n = atol(argv[2]);  // number of addresses
+    uint64_t value = 0;
+    bool change = (bool)argv[1];  // address type: 0 or 1
+    long s = atol(argv[2]);       // starting index
+    long n = atol(argv[3]);       // number of addresses
     if (s < 0 || n < 0) {
       shell_print(shell, "invalid index or numbers");
       return -1;
     }
 
     for (uint32_t idx = s; idx < s + n; idx++) {
-      if (wallet_balance_by_index(w_ctx, idx, &value) != 0) {
+      if (wallet_balance_by_index(w_ctx, change, idx, &value) != 0) {
         LOG_ERR("wallet get balance [%" PRIu32 "]failed\n", idx);
         break;
       }
-      dump_address(w_ctx, idx);
+      dump_address(w_ctx, idx, change);
       printf("balance: %" PRIu64 "\n", value);
     }
   }
-
   return 0;
 }
 
@@ -157,28 +166,36 @@ static int cmd_send(const struct shell *shell, size_t argc, char **argv) {
   char msg_id[IOTA_MESSAGE_ID_HEX_BYTES + 1] = {};
   char const data[] = "sent from iota.c";
   byte_t recv_addr[IOTA_ADDRESS_BYTES] = {};
-  long addr_index = atol(argv[1]);  // address index
-  long value = atol(argv[3]);       // tokens
+  long addr_index = atol(argv[1]);      // address index
+  char *bech32_addr = (char *)argv[2];  // receiver address in bech32 format
+  long value = atol(argv[3]);           // tokens
 
   if (addr_index < 0 || value <= 0) {
     shell_print(shell, "invalid index or token value");
     return -1;
   }
 
-  if (strncmp(argv[2], w_ctx->bech32HRP, strlen(w_ctx->bech32HRP)) != 0) {
+  if (strncmp(bech32_addr, w_ctx->bech32HRP, strlen(w_ctx->bech32HRP)) != 0) {
     shell_print(shell, "invalid address hash");
     return -1;
   }
 
-  if (address_from_bech32(w_ctx->bech32HRP, argv[2], recv_addr) != 0) {
+  if (strlen(bech32_addr) != IOTA_ADDRESS_HEX_BYTES) {
+    shell_print(shell, "invalid address length");
+    return -1;
+  }
+
+  if (address_from_bech32(w_ctx->bech32HRP, bech32_addr, recv_addr) != 0) {
     shell_print(shell, "convert address to binary failed");
     return -1;
   }
 
-  shell_print(shell, "Sending %ld Mi to %s", value, argv[2]);
+  shell_print(shell, "Sending %ld Mi to %s", value, bech32_addr);
   value = value * 1000000;  // Mi
-  int err = wallet_send(w_ctx, (uint32_t)addr_index, recv_addr + 1, value, "ZephyrWallet", (byte_t *)data, sizeof(data),
-                        msg_id, sizeof(msg_id));
+
+  // send from address that change is 0
+  int err = wallet_send(w_ctx, false, (uint32_t)addr_index, recv_addr + 1, value, "ZephyrWallet", (byte_t *)data,
+                        sizeof(data), msg_id, sizeof(msg_id));
   if (err) {
     shell_print(shell, "send transaction failed");
     return -1;
@@ -192,20 +209,24 @@ static int cmd_send(const struct shell *shell, size_t argc, char **argv) {
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_iota, SHELL_CMD(info, NULL, "Display node info", cmd_info),
                                SHELL_CMD_ARG(data, NULL,
                                              "Send data message.\n "
-                                             "Ex: iota data \"my ID\" \"hello iota\"",
+                                             "\tEx: iota data \"my ID\" \"hello iota\"",
                                              cmd_data, 3, 0),
                                SHELL_CMD_ARG(addr, NULL,
                                              "Get addresses from a given range.\n "
-                                             "Ex: iota addr 0 5",
-                                             cmd_addr, 3, 0),
+                                             "\tiota addr [is_change] [start_index] [count]\n "
+                                             "\tEx: iota addr 0 0 5",
+                                             cmd_addr, 4, 0),
                                SHELL_CMD_ARG(balance, NULL,
                                              "Get balance from an address or a given range.\n "
-                                             "Ex: iota balance 0 5\n "
-                                             "iota balance atoi1qzdglt68p...xtav6e82tp",
-                                             cmd_balance, 2, 1),
+                                             "\tiota balance [is_change] [start_index] [count]\n "
+                                             "\tiota balance [bech32_address]\n "
+                                             "\tEx: iota balance 0 0 5\n "
+                                             "\tiota balance atoi1qzdglt68p...xtav6e82tp",
+                                             cmd_balance, 2, 2),
                                SHELL_CMD_ARG(send, NULL,
                                              "send value transaction to an address\n "
-                                             "Ex: iota send 0 atoi1qzdglt68p...xtav6e82tp 3",
+                                             "\tiota send [addr_index] [recv_bech32_addr] [amount]\n "
+                                             "\tEx: iota send 0 atoi1qzdglt68p...xtav6e82tp 3",
                                              cmd_send, 4, 0),
                                SHELL_SUBCMD_SET_END);
 /* Creating root (level 0) command "iota" without a handler */
@@ -250,32 +271,30 @@ static int init_http_client_conf(iota_wallet_t *w) {
 }
 
 int init_wallet() {
-  byte_t seed[IOTA_SEED_BYTES] = {};
+  // buffer holds ramdom mnemonic sentence
+  char ms_buf[256] = {};
   LOG_DBG(" ");
 
   // validating seed config
-  if (strcmp(CONFIG_WALLET_SEED, "RANDOM") != 0) {
-    if (strlen(CONFIG_WALLET_SEED) != 64) {
-      LOG_ERR("seed length is %d, should be 64", strlen(CONFIG_WALLET_SEED));
-      return -1;
-    }
-    if (hex2bin(CONFIG_WALLET_SEED, strlen(CONFIG_WALLET_SEED), seed, sizeof(seed)) == 0) {
-      LOG_ERR("convert seed to binary failed");
+  if (strcmp(CONFIG_WALLET_MNEMONIC, "RANDOM") == 0) {
+    printf("Generating new mnemonic sentence...\n");
+    mnemonic_generator(MS_ENTROPY_256, MS_LAN_EN, ms_buf, sizeof(ms_buf));
+    printf("###\n%s\n###\n", ms_buf);
+    // init wallet with account index 0
+    if ((w_ctx = wallet_create(ms_buf, "", 0)) == NULL) {
+      LOG_ERR("create wallet failed with random mnemonic");
       return -1;
     }
   } else {
-    random_seed(seed);
-  }
-
-  // setup wallet
-  w_ctx = wallet_create(seed, CONFIG_WALLET_ADDR_PATH);
-  if (!w_ctx) {
-    LOG_ERR("Creating wallet object failed");
-    return -1;
+    if ((w_ctx = wallet_create(CONFIG_WALLET_MNEMONIC, "", 0)) == NULL) {
+      LOG_ERR("create wallet failed with default mnemonic");
+      return -1;
+    }
   }
 
   // http client setup
   if (init_http_client_conf(w_ctx) != 0) {
+    LOG_ERR("http client configuration failed");
     wallet_destroy(w_ctx);
     return -1;
   }
@@ -286,6 +305,6 @@ int init_wallet() {
     return -1;
   }
 
-  LOG_DBG("init wallet done");
+  printf("wallet initialized...OK\n");
   return 0;
 }
