@@ -111,24 +111,37 @@ static int cmd_addr(const struct shell *shell, size_t argc, char **argv) {
 }
 
 static int cmd_balance(const struct shell *shell, size_t argc, char **argv) {
-  uint64_t value = 0;
-  byte_t addr[IOTA_ADDRESS_BYTES] = {};
-
   if (argc == 2) {
+    // new API response object
+    res_balance_t *res = res_balance_new();
+    if (!res) {
+      LOG_ERR("allocate balance object failed\n");
+      return -1;
+    }
+
     // an address hash
     if (strncmp(argv[1], w_ctx->bech32HRP, strlen(w_ctx->bech32HRP)) != 0) {
       shell_print(shell, "invalid address hash");
+      res_balance_free(res);
       return -1;
     }
 
-    if (get_balance(&w_ctx->endpoint, true, argv[1], &value) != 0) {
+    if (get_balance(&w_ctx->endpoint, true, argv[1], res) != 0) {
       shell_print(shell, "get balance failed");
+      res_balance_free(res);
       return -1;
-    } else {
-      shell_print(shell, "balance: %" PRIu64, value);
     }
 
+    if (res->is_error) {
+      // got an error from node
+      LOG_ERR("Node: %s\n", res->u.error->msg);
+    }
+
+    shell_print(shell, "balance: %" PRIu64 "", res->u.output_balance->balance);
+    // clean up
+    res_balance_free(res);
   } else {
+    uint64_t value = 0;
     bool change = (bool)argv[1];  // address type: 0 or 1
     long s = atol(argv[2]);       // starting index
     long n = atol(argv[3]);       // number of addresses
